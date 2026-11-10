@@ -130,3 +130,18 @@ export function suggestClub(
   if (reaching.length > 0) return reaching[0].club;
   return candidates.sort((a, b) => b.carry - a.carry)[0].club;
 }
+
+/** Typical amateur carry (yards) for a club of the given loft, used until the player has data. */
+export function typicalCarryForLoft(loft: number): number {
+  const table: [number, number][] = [
+    [10, 220], [15, 200], [18, 188], [22, 176], [24, 165], [27, 155],
+    [31, 145], [35, 135], [39, 124], [44, 112], [50, 98], [56, 84], [60, 70],
+  ];
+  if (loft <= table[0][0]) return table[0][1];
+  for (let i = 1; i < table.length; i++) {
+    const [l1, c1] = table[i];
+    const [l0, c0] = table[i - 1];
+    if (loft <= l1) return Math.round(c0 + ((c1 - c0) * (loft - l0)) / (l1 - l0));
+  }
+  return table[table.length - 1][1];
+}

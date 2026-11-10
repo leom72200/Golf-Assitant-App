@@ -19,7 +19,11 @@ export function flightForShot(shot: Shot, club?: Pick<Club, 'loft'>): FlightResu
     return withLogged(f, shot);
   }
   if (!shot.carryYards || shot.carryYards <= 0) return undefined;
-  const launchAngleDeg = typicalLaunchForLoft(loft);
+  return withLogged(flightForCarry(shot.carryYards, typicalLaunchForLoft(loft), spinRpm), shot);
+}
+
+/** The simulated flight that carries `carryYards` at the given launch and spin. */
+export function flightForCarry(carryYards: number, launchAngleDeg: number, spinRpm: number): FlightResult {
   // Carry rises monotonically with ball speed, so bisect.
   let lo = 10;
   let hi = 240;
@@ -28,10 +32,10 @@ export function flightForShot(shot: Shot, club?: Pick<Club, 'loft'>): FlightResu
     const mid = (lo + hi) / 2;
     const f = simulateFlight({ ballSpeedMph: mid, launchAngleDeg, spinRpm });
     best = f;
-    if (f.carryYards < shot.carryYards) lo = mid;
+    if (f.carryYards < carryYards) lo = mid;
     else hi = mid;
   }
-  return withLogged(best, shot);
+  return best;
 }
 
 /** Prefer the distances the player actually logged, scaling the drawn path to match. */

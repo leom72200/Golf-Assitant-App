@@ -41,7 +41,7 @@ function useProgress(durationMs: number, runKey: unknown, enabled: boolean): num
 }
 
 /** The styled line itself: glow, main stroke (solid / gradient / comet / dashed), core. */
-function TracerLine({ points, style, head }: { points: Point2[]; style: TracerStyle; head?: boolean }) {
+export function TracerLine({ points, style, head }: { points: Point2[]; style: TracerStyle; head?: boolean }) {
   // Unique gradient ids per instance, since several tracers can be on screen at once.
   const id = `tr${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   if (points.length < 2) return null;
@@ -84,7 +84,7 @@ function TracerLine({ points, style, head }: { points: Point2[]; style: TracerSt
   );
 }
 
-function LandingMarker({ at, style, size = 8 }: { at: Point2; style: TracerStyle; size?: number }) {
+export function LandingMarker({ at, style, size = 8 }: { at: Point2; style: TracerStyle; size?: number }) {
   const color = style.colors[style.colors.length - 1];
   switch (style.landing) {
     case 'ring':

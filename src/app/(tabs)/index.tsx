@@ -62,6 +62,18 @@ export default function HomeScreen() {
         <Button title="Start a round" onPress={() => router.push('/round/new')} />
       )}
 
+      <Card onPress={() => router.push('/tracer')}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <ThemedText type="smallBold">🎥 Shot Tracer</ThemedText>
+          <ThemedText type="small" themeColor="tint">
+            Open camera ›
+          </ThemedText>
+        </Row>
+        <ThemedText type="small" themeColor="textSecondary">
+          Film from behind and watch every shot back with a tracer following the ball down the fairway.
+        </ThemedText>
+      </Card>
+
       <SectionTitle>Your game</SectionTitle>
       <StatGrid>
         <Stat label="Rounds" value={finished.length} />

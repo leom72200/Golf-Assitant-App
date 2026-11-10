@@ -95,9 +95,14 @@ export default function ScorecardScreen() {
 
       <Card>
         <Row style={{ justifyContent: 'space-between' }}>
-          <ThemedText type="smallBold">
+          <ThemedText type="smallBold" style={{ flex: 1 }}>
             Hole {score.hole} · Par {score.par}
           </ThemedText>
+          <Pressable onPress={() => router.push('/tracer')}>
+            <ThemedText type="smallBold" themeColor="tint">
+              🎥 Film
+            </ThemedText>
+          </Pressable>
           {mapped ? (
             <Pressable onPress={() => router.push(`/course/${course!.id}/hole/${score.hole}`)}>
               <ThemedText type="smallBold" themeColor="tint">

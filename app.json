@@ -64,6 +64,16 @@
         {
           "microphonePermission": "Golf Assistant listens for the sound of club hitting ball to time each shot in practice mode. Audio is never saved."
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": false,
+          "savePhotosPermission": "Golf Assistant saves your Shot Tracer videos to your gallery.",
+          "granularPermissions": [
+            "video"
+          ]
+        }
       ]
     ],
     "experiments": {

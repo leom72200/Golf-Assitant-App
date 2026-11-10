@@ -12,7 +12,8 @@ Built with [Expo](https://expo.dev) (SDK 58) + React Native + TypeScript, for iO
 | --- | --- |
 | **Home** | Round in progress, your stats (avg / best score, shots logged, challenge points), today's challenges, recent rounds. |
 | **My Bag** | Every club with its *stock carry* (trimmed average of good shots), its 80% carry range, and a yardage-gapping bar chart. Edit which 14 clubs are in the bag. Tap a club for full stats: avg total, consistency, ball/club speed, smash factor, launch, spin, miss tendency. |
-| **Shot Lab** | Your phone as a "sim sensor": a **live 240 fps practice mode** that hears each impact and measures **ball speed** and **launch angle** automatically, a manual analyzer for slow-motion clips, and a ball-flight calculator that turns ball speed + launch + spin (+ temperature and altitude) into carry, total, apex and landing angle. |
+| **Shot Tracer** | Film from behind the player (phone upright): every shot is replayed with a tracer following the ball down the fairway, in your unlocked tracer style. Start line detected automatically; adjust carry, curve and height to match. |
+| **Shot Lab** | Your phone as a "sim sensor" (side-on, ~7 ft away): a **live 240 fps practice mode** that hears each impact and measures **ball speed** and **launch angle** automatically, a manual analyzer for slow-motion clips, and a ball-flight calculator that turns ball speed + launch + spin (+ temperature and altitude) into carry, total, apex and landing angle. |
 | **Courses** | Find golf courses near you (GPS) or by name from **OpenStreetMap**, download their hole maps for offline use, and play with live **front / center / back** yardages on a satellite map. Tap anywhere on the map to measure layups. Club suggestions come from your own stock yardages. |
 | **Challenges** | **Round challenges** scored live from your scorecard (Fairway Finder, Lag Master, Hot Streak, Scrambler, Sandy, Par 3 Hero…), including club-of-your-choice ones like *One-Club Wonder* (par a hole using only your 7-iron) and *One-Club Legend* (birdie it). **Range challenges** run as a session with a club you pick: *Long Ball* (beat your longest carry), *Speed Session*, *Stock Sniper*, *Tight Group*, *Pure Strike*, *Dial It In*. Daily picks, points and levels. |
 
@@ -88,6 +89,34 @@ take breaks in long sessions.
 Shot Lab can also open a slow-motion clip from your gallery and let you mark the ball by hand (works in
 Expo Go). The ball-flight calculator turns ball speed + launch + spin into carry, using a drag-and-lift
 model that lands within ~7% of published tour-average carries.
+
+## Shot Tracer (filmed from behind the player)
+
+**Home → 🎥 Shot Tracer** (or **🎥 Film** on the scorecard). This is separate from the Shot Lab: the
+Shot Lab is the side-on "sim sensor" for measuring the strike; Shot Tracer films from behind, looking
+down the fairway, and replays each shot with a tracer following the ball.
+
+1. **Set up:** phone upright (portrait) 2–4 m behind the ball on the target line, about waist height,
+   ball near the bottom and the fairway running up to the horizon. Portrait matters: an upright phone
+   sees ~74° of sky, so high shots stay in the picture (in landscape they leave the top of the frame).
+2. **Hit:** the camera is live and recording; the app hears the impact (or tap **I just hit**), keeps
+   filming ~6 seconds so the whole flight is on video, then stops.
+3. **Aim once:** on the first shot, tap the ball, then your target far down the fairway. That fixes the
+   target line and the perspective (`src/domain/behindCamera.ts`), and is reused for later shots as long
+   as the phone doesn't move (a re-teed ball is found again automatically).
+4. **Replay:** the video plays from just before impact with the tracer drawn on it in time with the
+   ball, in your unlocked tracer style, with carry and total when it lands.
+   - **Start line** is detected from the ball's first appearance after impact (it must move away from
+     the address in consecutive frames, which rules out swinging arms and the club).
+   - **Distance** starts from your stock yardage for the selected club (or a typical one), with a
+     typical launch for that club.
+   - **Adjust** carry, start line, curve (draw/fade) and height so the tracer matches what you saw.
+5. **Save** the clip to your gallery (the plain video for now; the tracer shows in the app) and/or save
+   the shot to My Bag.
+
+Uses the phone's normal camera, so it works in Expo Go as well as the app build. Still to come: saving
+videos with the tracer drawn into them, and tracking the ball further into its flight to detect curve
+automatically.
 
 ## Shot tracer and unlockable styles
 
@@ -166,6 +195,7 @@ src/
     lab/practice.tsx      Live 240 fps practice mode
     shot/[id].tsx         Shot replay with tracer
     tracers.tsx           Tracer locker
+    tracer.tsx            Shot Tracer (film from behind, replay with tracer)
     course/[id]/…         Course overview + GPS hole map
     round/…               New round + live scorecard
   domain/                 Pure TypeScript logic, no React, fully unit tested
@@ -179,6 +209,8 @@ src/
     tracerStyles.ts       Tracer styles and their unlock rules
     tracerProjection.ts   Tracer geometry (down-the-line camera, camera-frame path)
     shotFlight.ts         Rebuild a flight for any logged shot (for replays)
+    behindCamera.ts       Shot Tracer perspective camera (ball + target taps) and tracer flight
+    behindDetect.ts       Start line from the ball's first appearance in behind-the-player video
     tracking.ts           Ball detection + flight tracking on grayscale frames
     shotAnalyzer.ts       Per-shot analysis plan (coarse scan, fine frames, fit)
     impactDetector.ts     Hears the impact in microphone levels

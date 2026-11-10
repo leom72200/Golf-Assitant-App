@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="round/[id]" options={{ title: 'Scorecard' }} />
         <Stack.Screen name="records" options={{ title: 'Personal records' }} />
         <Stack.Screen name="tracers" options={{ title: 'Tracer locker' }} />
+        <Stack.Screen name="tracer" options={{ title: 'Shot Tracer', headerShown: false }} />
         <Stack.Screen name="shot/[id]" options={{ title: 'Shot replay' }} />
         <Stack.Screen name="challenge/start" options={{ title: 'Range challenge', presentation: 'modal' }} />
       </Stack>

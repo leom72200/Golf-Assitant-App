@@ -243,6 +243,8 @@ export interface CandidateOptions {
   address: Point;
   /** +1 if the ball flies towards +x, -1 towards -x. */
   direction: 1 | -1;
+  /** Keep blobs in every direction (filming from behind, the ball flies "up" the picture). */
+  anyDirection?: boolean;
 }
 
 /**
@@ -264,7 +266,7 @@ export function findCandidates(f: GrayFrame, prev: GrayFrame, ref: GrayFrame, o:
     if (b.minX === 0 || b.minY === 0 || b.maxX === f.width - 1 || b.maxY === f.height - 1) return false;
     const ahead = (b.cx - o.address.x) * o.direction;
     const nearAddress = Math.hypot(b.cx - o.address.x, b.cy - o.address.y) < o.radius * 1.8;
-    return !nearAddress && ahead > -o.radius;
+    return !nearAddress && (o.anyDirection || ahead > -o.radius);
   });
 }
 
