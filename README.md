@@ -118,6 +118,17 @@ Uses the phone's normal camera, so it works in Expo Go as well as the app build.
 videos with the tracer drawn into them, and tracking the ball further into its flight to detect curve
 automatically.
 
+### Field testing (tuning the tracer on real shots)
+
+Turn on **Test mode** in Shot Tracer. Each shot then keeps its clip, everything the app detected (impact
+time from sound and from the frames, where the ball was first seen, the start line) and your notes on
+what really happened (did the tracer match, shot shape, where it landed, phone distance and height).
+**Tracer tests** shows how detection is doing and exports a JSON report plus clips. Upload them to
+[`tracer-tests/`](tracer-tests/README.md) and run `scripts/analyze-tracer-tests.ts` to re-run detection
+on the real frames and get contact sheets of each impact. That data is what turns the tracer's
+estimates into real readings: checking the camera's field of view, how visible the ball is in flight,
+and the timing of the impact sound.
+
 ## Shot tracer and unlockable styles
 
 Every shot can be watched with a **tracer line that follows the ball**:
@@ -196,6 +207,7 @@ src/
     shot/[id].tsx         Shot replay with tracer
     tracers.tsx           Tracer locker
     tracer.tsx            Shot Tracer (film from behind, replay with tracer)
+    tracer-tests.tsx      Field-test records, summary and export
     course/[id]/…         Course overview + GPS hole map
     round/…               New round + live scorecard
   domain/                 Pure TypeScript logic, no React, fully unit tested
@@ -218,7 +230,9 @@ src/
   services/courseApi.ts   Network calls to Overpass / Nominatim
   components/             Shared UI
 modules/highspeed-camera/ Local native module: Android 240 fps preview + recording (Kotlin)
-scripts/                  validate-tracking-video.ts (end-to-end check with ffmpeg)
+scripts/                  validate-tracking-video.ts (end-to-end check with ffmpeg),
+                          analyze-tracer-tests.ts (re-run Shot Tracer detection on field-test clips)
+tracer-tests/             Where exported Shot Tracer field-test data is uploaded
 ```
 
 ## Roadmap

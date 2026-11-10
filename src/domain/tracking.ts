@@ -245,6 +245,8 @@ export interface CandidateOptions {
   direction: 1 | -1;
   /** Keep blobs in every direction (filming from behind, the ball flies "up" the picture). */
   anyDirection?: boolean;
+  /** Smallest blob to keep (pixels). Filmed from behind, the ball shrinks to a dot fast. */
+  minArea?: number;
 }
 
 /**
@@ -260,7 +262,7 @@ export function findCandidates(f: GrayFrame, prev: GrayFrame, ref: GrayFrame, o:
   }
   const ballArea = Math.PI * o.radius * o.radius;
   // A blurred ball can smear to a few diameters long; tiny specks are noise.
-  const blobs = connectedComponents(mask, f.width, f.height, Math.max(2, ballArea * 0.2), ballArea * 8);
+  const blobs = connectedComponents(mask, f.width, f.height, o.minArea ?? Math.max(2, ballArea * 0.2), ballArea * 8);
   return blobs.filter((b) => {
     // A blob cut off by the frame edge has a misleading centre.
     if (b.minX === 0 || b.minY === 0 || b.maxX === f.width - 1 || b.maxY === f.height - 1) return false;

@@ -9,6 +9,7 @@
 import { requestRecordingPermissionsAsync, RecordingPresets, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
+import * as Device from 'expo-device';
 import { useKeepAwake } from 'expo-keep-awake';
 import { Asset, requestPermissionsAsync as requestMediaPermissionsAsync } from 'expo-media-library';
 import { router, Stack } from 'expo-router';
@@ -18,12 +19,14 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View, type
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Button, Card, Chips, Row, Screen } from '@/components/ui';
+import { Button, Card, Chips, NumberField, num, Row, Screen, ToggleRow } from '@/components/ui';
 import { VideoTracer } from '@/components/video-tracer';
 import { defaultShape, finishOffline, tracerFlight, type TracerShape } from '@/domain/behindCamera';
 import { clubStats, typicalCarryForLoft } from '@/domain/clubs';
 import { ImpactDetector } from '@/domain/impactDetector';
 import type { Point2 } from '@/domain/tracerProjection';
+import type { ShotShape, TracerMatch, TracerTestRecord } from '@/domain/tracerTests';
+import { keepClip } from '@/services/tracerTestStore';
 import type { GrayFrame } from '@/domain/tracking';
 import { useTheme } from '@/hooks/use-theme';
 import { useTracerStyle } from '@/hooks/use-tracer';
@@ -35,6 +38,7 @@ import {
   probeVideo,
   tracerGeometry,
   type Aim,
+  type TracerDetection,
   type VideoInfo,
 } from '@/services/tracerVideo';
 import { dispatch, newId, useAppState } from '@/state/store';
@@ -54,7 +58,24 @@ interface Clip {
   frames: ClipFrames;
   impactGuessSec: number;
   impactSec: number;
+  trigger: 'sound' | 'button';
 }
+
+const SHAPES: { value: ShotShape; label: string }[] = [
+  { value: 'straight', label: 'Straight' },
+  { value: 'draw', label: 'Draw' },
+  { value: 'fade', label: 'Fade' },
+  { value: 'hook', label: 'Hook' },
+  { value: 'slice', label: 'Slice' },
+  { value: 'push', label: 'Push' },
+  { value: 'pull', label: 'Pull' },
+  { value: 'topped', label: 'Topped' },
+];
+const MATCHES: { value: TracerMatch; label: string }[] = [
+  { value: 'yes', label: 'Tracer matched' },
+  { value: 'close', label: 'Close' },
+  { value: 'no', label: 'Way off' },
+];
 
 export default function ShotTracerScreen() {
   useKeepAwake();
@@ -90,6 +111,16 @@ export default function ShotTracerScreen() {
   const [shape, setShape] = useState<TracerShape>();
   const [replayKey, setReplayKey] = useState(0);
   const [saved, setSaved] = useState<{ video?: boolean; shot?: boolean }>({});
+  // Field-test mode: keep each clip with what was detected and what really happened.
+  const testMode = useAppState((s) => s.preferences.tracerTestMode);
+  const testCamera = useAppState((s) => s.preferences.testCamera);
+  const testCount = useAppState((s) => s.tracerTests.length);
+  const [detection, setDetection] = useState<TracerDetection & { impactGuessSec: number; trigger: 'sound' | 'button'; aim: Aim }>();
+  const [notes, setNotes] = useState<{ landed: string; shape?: ShotShape; matched?: TracerMatch; dist: string; height: string }>({
+    landed: '',
+    dist: '',
+    height: '',
+  });
 
   const club = clubs.find((c) => c.id === clubId);
   const carryFor = useCallback(
@@ -137,6 +168,12 @@ export default function ShotTracerScreen() {
         launchDeg: base.launchDeg,
       });
       if (det.ball) setAim((prev) => (prev ? { ...prev, ball: det.ball! } : prev));
+      setDetection({ ...det, impactGuessSec: c.impactGuessSec, trigger: c.trigger, aim: a });
+      setNotes((n) => ({
+        landed: '',
+        dist: n.dist || (testCamera?.distanceM !== undefined ? String(testCamera.distanceM) : ''),
+        height: n.height || (testCamera?.heightM !== undefined ? String(testCamera.heightM) : ''),
+      }));
       setClip({ ...c, impactSec: det.impactSec });
       setShape({ ...base, startDeg: det.startDeg ?? 0 });
       setSaved({});
@@ -151,11 +188,11 @@ export default function ShotTracerScreen() {
       setPhase('review');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     },
-    [clubs, carryFor],
+    [clubs, carryFor, testCamera],
   );
 
   const handleClip = useCallback(
-    async (uri: string, heardAt: number, stopAt: number) => {
+    async (uri: string, heardAt: number, stopAt: number, trigger: 'sound' | 'button') => {
       setPhase('processing');
       setStatus('Loading the shot…');
       try {
@@ -164,7 +201,7 @@ export default function ShotTracerScreen() {
         const frames = new ClipFrames(uri, geometry);
         const duration = info.duration || frames.duration || 0;
         const impactGuessSec = Math.max(0, Math.min(duration, duration - (stopAt - heardAt) / 1000 - 0.06));
-        const c: Clip = { uri, info, geometry, frames, impactGuessSec, impactSec: impactGuessSec };
+        const c: Clip = { uri, info, geometry, frames, impactGuessSec, impactSec: impactGuessSec, trigger };
         clipRef.current?.frames.release(true);
         setClip(c);
         if (!aimRef.current) {
@@ -195,6 +232,7 @@ export default function ShotTracerScreen() {
     if (!cam) return;
     let cancelled = false;
     let heardAt: number | undefined;
+    let heardBy: 'sound' | 'button' = 'sound';
     let stopAt = 0;
     let clipStart = 0;
     let stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -216,16 +254,17 @@ export default function ShotTracerScreen() {
       if (heardAt !== undefined && uri) {
         const h = heardAt;
         heardAt = undefined;
-        handleClip(uri, h, stopAt);
+        handleClip(uri, h, stopAt, heardBy);
         return;
       }
       deleteQuietly(uri);
       heardAt = undefined;
       startClip();
     };
-    const trigger = (at: number) => {
+    const trigger = (at: number, by: 'sound' | 'button') => {
       if (heardAt !== undefined) return;
       heardAt = at;
+      heardBy = by;
       setStatus('Shot! Following the ball…');
       stopTimer = setTimeout(() => {
         stopAt = Date.now();
@@ -233,7 +272,7 @@ export default function ShotTracerScreen() {
       }, AFTER_IMPACT_MS);
     };
     // Fallback if the impact isn't heard: tap right after the shot.
-    manualTrigger.current = () => trigger(Date.now() - 500);
+    manualTrigger.current = () => trigger(Date.now() - 500, 'button');
 
     (async () => {
       try {
@@ -249,7 +288,7 @@ export default function ShotTracerScreen() {
       interval = setInterval(() => {
         const now = Date.now();
         const level = audio.getStatus().metering;
-        if (heardAt === undefined && level !== undefined && detector.push(level, now)) trigger(now);
+        if (heardAt === undefined && level !== undefined && detector.push(level, now)) trigger(now, 'sound');
         if (heardAt === undefined && now - clipStart > ROLL_MS) cam.stopRecording();
       }, METER_POLL_MS);
     })();
@@ -314,7 +353,50 @@ export default function ShotTracerScreen() {
   };
 
   // ---- Review actions ----
-  const nextShot = () => {
+  const saveTestRecord = async () => {
+    if (!clip || !shape || !tracer || !detection) return;
+    const id = newId();
+    const size = analysisSize(clip.geometry);
+    const distanceM = num(notes.dist);
+    const heightM = num(notes.height);
+    try {
+      const videoFile = await keepClip(clip.uri, id);
+      const record: TracerTestRecord = {
+        id,
+        createdAt: new Date().toISOString(),
+        videoFile,
+        device: { model: Device.modelName ?? undefined, os: Device.osVersion ?? undefined },
+        video: { ...clip.info, rotation: clip.geometry.rotation },
+        analysis: { width: size.width, height: size.height },
+        aim: { ball: { x: detection.aim.ball.x, y: detection.aim.ball.y, radius: detection.aim.ball.radius }, target: detection.aim.target },
+        detection: {
+          impactFromAudioSec: detection.impactGuessSec,
+          impactFromFramesSec: detection.impactFromFrames ? detection.impactSec : undefined,
+          ballFound: !!detection.ball,
+          sighting: detection.sighting,
+          startDeg: detection.startDeg,
+          elapsedMs: detection.elapsedMs ?? 0,
+          triggeredBy: detection.trigger,
+        },
+        final: {
+          clubId: clubId ?? '',
+          carryYards: Math.round(tracer.flight.carryYards),
+          launchDeg: shape.launchDeg,
+          startDeg: shape.startDeg,
+          curveYards: shape.curveYards,
+          apexYards: Math.round(tracer.flight.apexYards),
+        },
+        notes: { landedYards: num(notes.landed), shape: notes.shape, matched: notes.matched, cameraDistanceM: distanceM, cameraHeightM: heightM },
+      };
+      dispatch({ type: 'tracerTest/add', record });
+      if (distanceM !== undefined || heightM !== undefined) dispatch({ type: 'prefs/testCamera', distanceM, heightM });
+    } catch (e) {
+      setStatus(`Couldn't keep the test clip: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
+
+  const nextShot = async () => {
+    if (testMode) await saveTestRecord();
     clip?.frames.release(true);
     setClip(undefined);
     setShape(undefined);
@@ -474,6 +556,13 @@ export default function ShotTracerScreen() {
             <ThemedText type="small" themeColor="textSecondary">
               Use this if a quiet shot isn&apos;t picked up.
             </ThemedText>
+            <ToggleRow
+              label="Test mode"
+              hint="Keep each clip with what the app detected and your notes, to help tune the tracer"
+              value={testMode}
+              onChange={(on) => dispatch({ type: 'prefs/tracerTestMode', on })}
+            />
+            <Button title={`Tracer tests (${testCount}) ›`} variant="secondary" onPress={() => router.push('/tracer-tests')} />
           </>
         ) : null}
 
@@ -499,7 +588,7 @@ export default function ShotTracerScreen() {
           <>
             <Row>
               <Button title="▶ Replay" onPress={() => setReplayKey((k) => k + 1)} style={{ flex: 1 }} />
-              <Button title="Next shot" variant="secondary" onPress={nextShot} style={{ flex: 1 }} />
+              <Button title={testMode ? 'Save test + next' : 'Next shot'} variant="secondary" onPress={nextShot} style={{ flex: 1 }} />
             </Row>
             <Chips options={clubOptions} selected={clubId} onSelect={pickClub} />
             <Card>
@@ -521,6 +610,21 @@ export default function ShotTracerScreen() {
               />
               <Stepper label="Height" value={`${Math.round(tracer.flight.apexYards)} yds apex`} onMinus={() => adjust({ launchDeg: Math.max(5, shape.launchDeg - 2) })} onPlus={() => adjust({ launchDeg: Math.min(45, shape.launchDeg + 2) })} />
             </Card>
+            {testMode ? (
+              <Card>
+                <ThemedText type="smallBold">🧪 Test notes — what really happened?</ThemedText>
+                <Chips options={MATCHES} selected={notes.matched} onSelect={(matched) => setNotes({ ...notes, matched })} />
+                <Chips options={SHAPES} selected={notes.shape} onSelect={(shape) => setNotes({ ...notes, shape })} />
+                <Row style={{ flexWrap: 'wrap' }}>
+                  <NumberField label="Where it landed" value={notes.landed} onChange={(landed) => setNotes({ ...notes, landed })} unit="yds" />
+                  <NumberField label="Phone to ball" value={notes.dist} onChange={(dist) => setNotes({ ...notes, dist })} unit="m" />
+                  <NumberField label="Phone height" value={notes.height} onChange={(height) => setNotes({ ...notes, height })} unit="m" />
+                </Row>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Saved with the clip when you tap Next shot. Rough numbers are fine (pace it off or use yardage markers).
+                </ThemedText>
+              </Card>
+            ) : null}
             {status ? <ThemedText type="small" themeColor="warning">{status}</ThemedText> : null}
             <Row>
               <Button title={saved.video ? 'Saved ✓' : 'Save video'} variant="secondary" onPress={saveVideo} disabled={saved.video} style={{ flex: 1 }} />

@@ -34,6 +34,8 @@ export function detectLaunchBehind(frames: GrayFrame[], ball: BallFix, target: P
       address: ball,
       direction: 1,
       anyDirection: true,
+      // Flying away from the camera the ball is a dot of a few pixels within a frame or two.
+      minArea: 2,
     });
     perFrame.push(
       blobs

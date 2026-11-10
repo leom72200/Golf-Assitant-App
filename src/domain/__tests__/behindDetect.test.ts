@@ -2,10 +2,17 @@ import { calibrateBehind, defaultShape, projectBehind, startAngleFromSighting, t
 import { detectLaunchBehind } from '../behindDetect';
 import { locateBall, type GrayFrame } from '../tracking';
 
-const W = 640;
-const H = 360;
-const BALL = { x: 360, y: 320 };
-const TARGET = { x: 320, y: 150 };
+interface Scene {
+  W: number;
+  H: number;
+  BALL: { x: number; y: number };
+  TARGET: { x: number; y: number };
+}
+const LANDSCAPE: Scene = { W: 640, H: 360, BALL: { x: 360, y: 320 }, TARGET: { x: 320, y: 150 } };
+// Phone upright and close: the ball shrinks to a 1–2 px dot within two frames.
+const PORTRAIT: Scene = { W: 640, H: 1138, BALL: { x: 340, y: 1020 }, TARGET: { x: 320, y: 500 } };
+let { W, H, BALL, TARGET } = LANDSCAPE;
+const use = (s: Scene) => ({ W, H, BALL, TARGET } = s);
 
 /** Behind-the-player frames at 30 fps: grass, a golfer beside the ball, the ball flying away. */
 function render(frame: number, impactFrame: number, startDeg: number): GrayFrame {
@@ -47,7 +54,16 @@ function render(frame: number, impactFrame: number, startDeg: number): GrayFrame
 }
 
 describe('detectLaunchBehind', () => {
-  it.each([-5, 0, 6])('finds the first sighting and recovers a %s° start line', (startDeg) => {
+  beforeEach(() => use(LANDSCAPE));
+
+  it.each([
+    ['landscape', -5],
+    ['landscape', 0],
+    ['landscape', 6],
+    ['portrait, close', -4],
+    ['portrait, close', 5],
+  ] as const)('%s: recovers a %s° start line', (layout, startDeg) => {
+    use(layout === 'landscape' ? LANDSCAPE : PORTRAIT);
     const frames = Array.from({ length: 20 }, (_, i) => render(i, 10, startDeg));
     const ball = locateBall(frames[0], { x: BALL.x + 2, y: BALL.y - 1 }, 15, { minRadius: 1.5 })!;
     expect(ball).toBeDefined();

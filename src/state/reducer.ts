@@ -1,5 +1,6 @@
 import { DEFAULT_BAG } from '@/domain/clubs';
 import { blankScorecard } from '@/domain/scoring';
+import type { TracerTestRecord } from '@/domain/tracerTests';
 import type { ChallengeAttempt, Club, Course, HoleScore, Round, Shot } from '@/domain/types';
 
 export interface AppState {
@@ -10,6 +11,8 @@ export interface AppState {
   /** Range-session challenges, active and finished. */
   attempts: ChallengeAttempt[];
   preferences: Preferences;
+  /** Shot Tracer field-test records (their clips live in the app's tracer-tests folder). */
+  tracerTests: TracerTestRecord[];
 }
 
 export interface Preferences {
@@ -17,6 +20,10 @@ export interface Preferences {
   tracerStyle: string;
   /** Tracer styles the player has already been told were unlocked. */
   seenTracers: string[];
+  /** Keep Shot Tracer clips and detection data for tuning. */
+  tracerTestMode: boolean;
+  /** Last camera distance / height entered in test mode (metres). */
+  testCamera?: { distanceM?: number; heightM?: number };
 }
 
 export const initialState: AppState = {
@@ -25,7 +32,8 @@ export const initialState: AppState = {
   courses: [],
   rounds: [],
   attempts: [],
-  preferences: { tracerStyle: 'classic', seenTracers: ['classic'] },
+  preferences: { tracerStyle: 'classic', seenTracers: ['classic'], tracerTestMode: false },
+  tracerTests: [],
 };
 
 export type Action =
@@ -52,7 +60,11 @@ export type Action =
   | { type: 'attempt/end'; id: string; endedAt: string }
   | { type: 'attempt/delete'; id: string }
   | { type: 'prefs/tracer'; id: string }
-  | { type: 'prefs/seenTracers'; ids: string[] };
+  | { type: 'prefs/seenTracers'; ids: string[] }
+  | { type: 'prefs/tracerTestMode'; on: boolean }
+  | { type: 'prefs/testCamera'; distanceM?: number; heightM?: number }
+  | { type: 'tracerTest/add'; record: TracerTestRecord }
+  | { type: 'tracerTest/delete'; id: string };
 
 const replaceById = <T extends { id: string }>(list: T[], item: T) =>
   list.map((x) => (x.id === item.id ? item : x));
@@ -117,6 +129,14 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, attempts: state.attempts.filter((a) => a.id !== action.id) };
     case 'prefs/tracer':
       return { ...state, preferences: { ...state.preferences, tracerStyle: action.id } };
+    case 'prefs/tracerTestMode':
+      return { ...state, preferences: { ...state.preferences, tracerTestMode: action.on } };
+    case 'prefs/testCamera':
+      return { ...state, preferences: { ...state.preferences, testCamera: { distanceM: action.distanceM, heightM: action.heightM } } };
+    case 'tracerTest/add':
+      return { ...state, tracerTests: [action.record, ...state.tracerTests] };
+    case 'tracerTest/delete':
+      return { ...state, tracerTests: state.tracerTests.filter((r) => r.id !== action.id) };
     case 'prefs/seenTracers':
       return {
         ...state,

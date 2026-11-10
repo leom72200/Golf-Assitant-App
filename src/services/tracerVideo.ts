@@ -74,6 +74,11 @@ export interface TracerDetection {
   startDeg?: number;
   /** The ball's address position this time (it may have been re-teed). */
   ball?: BallFix;
+  /** Where the ball was first seen in flight (analysis pixels). */
+  sighting?: Point2;
+  /** True when the impact time came from the frames rather than the sound. */
+  impactFromFrames?: boolean;
+  elapsedMs?: number;
 }
 
 /**
@@ -89,6 +94,8 @@ export async function detectTracerLaunch(opts: {
   windowSec?: number;
 }): Promise<TracerDetection> {
   const { frames, geometry, aim, impactGuessSec, launchDeg } = opts;
+  const started = Date.now();
+  const took = () => Date.now() - started;
   const fps = geometry.fps;
   const size = analysisSize(geometry);
   const half = Math.round((opts.windowSec ?? 0.4) * fps);
@@ -112,16 +119,16 @@ export async function detectTracerLaunch(opts: {
       found = locateBall(img, near, Math.max(12, r0 * 6), { minRadius: 1.5, maxRadius: Math.max(6, r0 * 2) });
       if (found) break;
     }
-    if (!found) return { impactSec: impactGuessSec };
+    if (!found) return { impactSec: impactGuessSec, elapsedMs: took() };
     const ball: BallFix = { ...found, x: found.x + x0, y: found.y + y0 };
     const res = detectLaunchBehind(imgs, found, toRegion(aim.target));
-    if (!res) return { impactSec: impactGuessSec, ball };
+    if (!res) return { impactSec: impactGuessSec, ball, elapsedMs: took() };
     const impactSec = (indices[res.impactIndex] + 0.5) / fps;
     const sighting = { x: res.sighting.x + x0, y: res.sighting.y + y0 };
     const cal = calibrateBehind(ball, aim.target, size.width, size.height);
     const startDeg = cal ? startAngleFromSighting(cal, launchDeg, sighting) : undefined;
-    return { impactSec, startDeg, ball };
+    return { impactSec, startDeg, ball, sighting, impactFromFrames: true, elapsedMs: took() };
   } catch {
-    return { impactSec: impactGuessSec };
+    return { impactSec: impactGuessSec, elapsedMs: took() };
   }
 }
