@@ -1,12 +1,14 @@
 import { DEFAULT_BAG } from '@/domain/clubs';
 import { blankScorecard } from '@/domain/scoring';
-import type { Club, Course, HoleScore, Round, Shot } from '@/domain/types';
+import type { ChallengeAttempt, Club, Course, HoleScore, Round, Shot } from '@/domain/types';
 
 export interface AppState {
   clubs: Club[];
   shots: Shot[];
   courses: Course[];
   rounds: Round[];
+  /** Range-session challenges, active and finished. */
+  attempts: ChallengeAttempt[];
 }
 
 export const initialState: AppState = {
@@ -14,6 +16,7 @@ export const initialState: AppState = {
   shots: [],
   courses: [],
   rounds: [],
+  attempts: [],
 };
 
 export type Action =
@@ -24,10 +27,21 @@ export type Action =
   | { type: 'shot/delete'; id: string }
   | { type: 'course/save'; course: Course }
   | { type: 'course/delete'; id: string }
-  | { type: 'round/start'; id: string; startedAt: string; course?: Course; challengeIds: string[]; holeCount?: number }
+  | {
+      type: 'round/start';
+      id: string;
+      startedAt: string;
+      course?: Course;
+      challengeIds: string[];
+      challengeClubs?: Record<string, string>;
+      holeCount?: number;
+    }
   | { type: 'round/score'; roundId: string; score: HoleScore }
   | { type: 'round/finish'; roundId: string; finishedAt: string }
-  | { type: 'round/delete'; id: string };
+  | { type: 'round/delete'; id: string }
+  | { type: 'attempt/start'; attempt: ChallengeAttempt }
+  | { type: 'attempt/end'; id: string; endedAt: string }
+  | { type: 'attempt/delete'; id: string };
 
 const replaceById = <T extends { id: string }>(list: T[], item: T) =>
   list.map((x) => (x.id === item.id ? item : x));
@@ -61,6 +75,7 @@ export function reducer(state: AppState, action: Action): AppState {
         startedAt: action.startedAt,
         scores: blankScorecard(action.course, action.holeCount),
         challengeIds: action.challengeIds,
+        challengeClubs: action.challengeClubs,
       };
       return { ...state, rounds: [round, ...state.rounds] };
     }
@@ -80,10 +95,22 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     case 'round/delete':
       return { ...state, rounds: state.rounds.filter((r) => r.id !== action.id) };
+    case 'attempt/start':
+      return { ...state, attempts: [action.attempt, ...state.attempts] };
+    case 'attempt/end':
+      return {
+        ...state,
+        attempts: state.attempts.map((a) => (a.id === action.id && !a.endedAt ? { ...a, endedAt: action.endedAt } : a)),
+      };
+    case 'attempt/delete':
+      return { ...state, attempts: state.attempts.filter((a) => a.id !== action.id) };
   }
 }
 
 /** The round in progress, if any (most recent unfinished). */
 export const activeRound = (state: Pick<AppState, 'rounds'>) => state.rounds.find((r) => !r.finishedAt);
+
+/** Range sessions still running. */
+export const activeAttempts = (state: Pick<AppState, 'attempts'>) => state.attempts.filter((a) => !a.endedAt);
 
 export const finishedRounds = (state: Pick<AppState, 'rounds'>) => state.rounds.filter((r) => r.finishedAt);

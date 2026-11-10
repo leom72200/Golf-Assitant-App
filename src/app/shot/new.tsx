@@ -1,11 +1,15 @@
+import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { Alert } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Chips, NumberField, num, Row, Screen, SectionTitle, TextField, ToggleRow } from '@/components/ui';
+import { challengeText, evaluateAttempt, rangeChallengeById } from '@/domain/challenges';
 import { simulateFlight, typicalSpinForLoft } from '@/domain/launch';
-import type { ShotSource } from '@/domain/types';
-import { dispatch, newId, useAppState } from '@/state/store';
+import { newRecordsForShot } from '@/domain/records';
+import type { Shot, ShotSource } from '@/domain/types';
+import { dispatch, getState, newId, useAppState } from '@/state/store';
 
 /**
  * Log a shot. Opened empty from the bag, or pre-filled by the Shot Lab with measured
@@ -50,27 +54,64 @@ export default function NewShotScreen() {
     if (num(spin) === undefined) setSpin(String(spinRpm));
   };
 
-  const save = () => {
+  const attempts = useAppState((s) => s.attempts);
+  const shots = useAppState((s) => s.shots);
+  const session = attempts.find((a) => !a.endedAt && a.clubId === clubId);
+  const [savedCount, setSavedCount] = useState(0);
+  // A Shot Lab measurement only applies to the first shot; extra shots logged after it are manual.
+  const [source, setSource] = useState<ShotSource>(params.source ?? 'manual');
+
+  const resetNumbers = () => {
+    for (const set of [setCarry, setTotal, setBallSpeed, setClubSpeed, setLaunch, setSpin, setOffline, setNotes]) set('');
+    setMishit(false);
+  };
+
+  /** Records broken and range sessions completed by this shot, for a celebration message. */
+  const celebrate = (shot: Shot, before: ReturnType<typeof getState>) => {
+    const lines = newRecordsForShot(before.shots, shot).map(
+      (r) =>
+        `${r.label}: ${r.value.toFixed(r.digits)}${r.unit ? ` ${r.unit}` : ''} (was ${r.previous!.toFixed(r.digits)})`,
+    );
+    const after = getState();
+    for (const a of before.attempts.filter((x) => !x.endedAt && x.clubId === shot.clubId)) {
+      const wasDone = evaluateAttempt(a, before.shots)?.status === 'completed';
+      const c = rangeChallengeById(a.challengeId);
+      if (c && !wasDone && evaluateAttempt(a, after.shots)?.status === 'completed') {
+        lines.push(`Challenge complete: ${challengeText(c.title)} (+${c.points} pts)`);
+      }
+    }
+    if (lines.length === 0) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    Alert.alert(lines.some((l) => !l.startsWith('Challenge')) ? '🏆 New personal record!' : '🎉 Challenge complete!', lines.join('\n'));
+  };
+
+  const save = (andNext = false) => {
     if (!clubId) return;
-    dispatch({
-      type: 'shot/add',
-      shot: {
-        id: newId(),
-        clubId,
-        createdAt: new Date().toISOString(),
-        source: params.source ?? 'manual',
-        carryYards: num(carry),
-        totalYards: num(total),
-        ballSpeedMph: num(ballSpeed),
-        clubSpeedMph: num(clubSpeed),
-        launchAngleDeg: num(launch),
-        spinRpm: num(spin),
-        offlineYards: num(offline),
-        mishit,
-        notes: notes.trim() || undefined,
-      },
-    });
-    router.back();
+    const before = getState();
+    const shot: Shot = {
+      id: newId(),
+      clubId,
+      createdAt: new Date().toISOString(),
+      source,
+      carryYards: num(carry),
+      totalYards: num(total),
+      ballSpeedMph: num(ballSpeed),
+      clubSpeedMph: num(clubSpeed),
+      launchAngleDeg: num(launch),
+      spinRpm: num(spin),
+      offlineYards: num(offline),
+      mishit,
+      notes: notes.trim() || undefined,
+    };
+    dispatch({ type: 'shot/add', shot });
+    if (andNext) {
+      resetNumbers();
+      setSource('manual');
+      setSavedCount((n) => n + 1);
+    } else {
+      router.back();
+    }
+    celebrate(shot, before);
   };
 
   return (
@@ -105,7 +146,31 @@ export default function NewShotScreen() {
       <ToggleRow label="Mishit" hint="Excluded from your stock yardages" value={mishit} onChange={setMishit} />
       <TextField label="Notes" value={notes} onChange={setNotes} placeholder="e.g. into the wind, from the rough" multiline />
 
-      <Button title="Save shot" onPress={save} disabled={!clubId || !hasData} />
+      {session ? (
+        <Card>
+          <ThemedText type="small" themeColor="tint">
+            Range session running: {challengeText(rangeChallengeById(session.challengeId)?.title ?? '')}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {evaluateAttempt(session, shots)?.detail}
+          </ThemedText>
+        </Card>
+      ) : null}
+      <Row>
+        <Button title="Save shot" onPress={() => save()} disabled={!clubId || !hasData} style={{ flex: 1 }} />
+        <Button
+          title="Save & log another"
+          variant="secondary"
+          onPress={() => save(true)}
+          disabled={!clubId || !hasData}
+          style={{ flex: 1 }}
+        />
+      </Row>
+      {savedCount > 0 ? (
+        <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: 'center' }}>
+          {savedCount} shot{savedCount > 1 ? 's' : ''} saved this session
+        </ThemedText>
+      ) : null}
     </Screen>
   );
 }

@@ -17,6 +17,24 @@ export function upAndDown(h: HoleScore): boolean {
   return isPlayed(h) && greenInRegulation(h) === false && toPar(h) <= 0;
 }
 
+/** Longest run of consecutive played holes satisfying `pred`. */
+export function longestStreak(
+  scores: HoleScore[],
+  pred: (h: HoleScore & { strokes: number }) => boolean,
+): number {
+  let best = 0;
+  let cur = 0;
+  for (const h of [...scores].sort((a, b) => a.hole - b.hole)) {
+    if (isPlayed(h) && pred(h)) {
+      cur += 1;
+      best = Math.max(best, cur);
+    } else {
+      cur = 0;
+    }
+  }
+  return best;
+}
+
 export function scoreName(diff: number): string {
   if (diff <= -3) return 'Albatross';
   if (diff === -2) return 'Eagle';

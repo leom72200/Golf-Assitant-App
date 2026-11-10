@@ -14,10 +14,15 @@ Built with [Expo](https://expo.dev) (SDK 58) + React Native + TypeScript, for iO
 | **My Bag** | Every club with its *stock carry* (trimmed average of good shots), its 80% carry range, and a yardage-gapping bar chart. Edit which 14 clubs are in the bag. Tap a club for full stats: avg total, consistency, ball/club speed, smash factor, launch, spin, miss tendency. |
 | **Shot Lab** | Your phone as a simple "sim sensor": record a swing, or analyze a slow-motion clip by marking the ball to measure **ball speed** and **launch angle**. A ball-flight calculator turns ball speed + launch + spin (+ temperature and altitude) into carry, total, apex and landing angle. |
 | **Courses** | Find golf courses near you (GPS) or by name from **OpenStreetMap**, download their hole maps for offline use, and play with live **front / center / back** yardages on a satellite map. Tap anywhere on the map to measure layups. Club suggestions come from your own stock yardages. |
-| **Challenges** | 12 challenges (Fairway Finder, Lag Master, Hot Streak, Scrambler, Sandy, Par 3 Hero…) scored live from your scorecard, plus 3 daily picks, points and levels. |
+| **Challenges** | **Round challenges** scored live from your scorecard (Fairway Finder, Lag Master, Hot Streak, Scrambler, Sandy, Par 3 Hero…), including club-of-your-choice ones like *One-Club Wonder* (par a hole using only your 7-iron) and *One-Club Legend* (birdie it). **Range challenges** run as a session with a club you pick: *Long Ball* (beat your longest carry), *Speed Session*, *Stock Sniper*, *Tight Group*, *Pure Strike*, *Dial It In*. Daily picks, points and levels. |
 
-Rounds have a hole-by-hole scorecard (strokes, putts, fairway, penalties, bunker), and challenge progress
-updates as you enter each hole.
+**Personal records** are tracked automatically: longest carry / total, fastest ball and club speed and best
+smash factor per club, plus best 9- and 18-hole scores, fewest putts, most birdies, longest par streak,
+most fairways and greens, and a best score for each course. Breaking a record when you log a shot pops a
+celebration.
+
+Rounds have a hole-by-hole scorecard (strokes, putts, fairway, penalties, bunker, one-club-only), and
+challenge progress updates as you enter each hole.
 
 ## Getting started
 
@@ -123,4 +128,5 @@ src/
 - [ ] Handicap index (World Handicap System) from rounds with course rating / slope.
 - [ ] Head-to-head and group challenges with friends, leaderboards (needs a backend + accounts).
 - [ ] More formats: skins, Stableford, match play, "club roulette" honor-system challenges.
+- [ ] Records from on-course shot tracking (longest drive in play, longest putt holed).
 - [ ] Cloud backup and sync.

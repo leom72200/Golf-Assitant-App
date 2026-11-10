@@ -104,6 +104,8 @@ export interface HoleScore {
   penalties?: number;
   /** Hit from a bunker this hole. */
   sandShot?: boolean;
+  /** Played the whole hole (putts included) with one club, for one-club challenges. */
+  singleClub?: boolean;
 }
 
 export interface Round {
@@ -115,4 +117,20 @@ export interface Round {
   scores: HoleScore[];
   /** Challenge ids the player opted into for this round. */
   challengeIds: string[];
+  /** The club chosen for club-specific challenges, keyed by challenge id. */
+  challengeClubs?: Record<string, string>;
+}
+
+/**
+ * A range-session challenge in progress or finished, e.g. "beat your longest 7-iron".
+ * Only shots logged between `startedAt` and `endedAt` count towards it.
+ */
+export interface ChallengeAttempt {
+  id: string;
+  challengeId: string;
+  clubId: string;
+  startedAt: string;
+  endedAt?: string;
+  /** Snapshot of the number to beat when the attempt started (e.g. the carry record). */
+  baseline?: number;
 }

@@ -3,7 +3,8 @@ import { useMemo } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Empty, ProgressBar, Row, Screen, SectionTitle, Stat, StatGrid } from '@/components/ui';
-import { challengeById, dailyChallenges, totalPoints } from '@/domain/challenges';
+import { dailyChallenges, roundChallengeById, totalPoints } from '@/domain/challenges';
+import { roundRecords } from '@/domain/records';
 import { formatToPar, summarizeRound } from '@/domain/scoring';
 import { activeRound } from '@/state/reducer';
 import { useAppState } from '@/state/store';
@@ -12,6 +13,7 @@ export default function HomeScreen() {
   const rounds = useAppState((s) => s.rounds);
   const shots = useAppState((s) => s.shots);
   const clubs = useAppState((s) => s.clubs);
+  const attempts = useAppState((s) => s.attempts);
 
   const live = useMemo(() => activeRound({ rounds }), [rounds]);
   const finished = useMemo(() => rounds.filter((r) => r.finishedAt), [rounds]);
@@ -19,8 +21,10 @@ export default function HomeScreen() {
     const full = finished.map(summarizeRound).filter((s) => s.finished);
     const avg = full.length ? full.reduce((a, s) => a + s.toPar, 0) / full.length : undefined;
     const best = full.length ? Math.min(...full.map((s) => s.toPar)) : undefined;
-    return { avg, best, points: totalPoints(rounds) };
-  }, [finished, rounds]);
+    return { avg, best, points: totalPoints(rounds, attempts, shots) };
+  }, [finished, rounds, attempts, shots]);
+  const records = useMemo(() => roundRecords(rounds), [rounds]);
+  const activeSessions = attempts.filter((a) => !a.endedAt).length;
   const daily = useMemo(() => dailyChallenges(new Date()), []);
   const liveSummary = live ? summarizeRound(live) : undefined;
 
@@ -36,7 +40,7 @@ export default function HomeScreen() {
             Thru {liveSummary.holesPlayed} · {formatToPar(liveSummary.toPar)} · {liveSummary.strokes} strokes
           </ThemedText>
           {live.challengeIds.map((id) => {
-            const c = challengeById(id);
+            const c = roundChallengeById(id);
             if (!c) return null;
             const p = c.evaluate(live, { pastRounds: finished });
             return (
@@ -63,6 +67,31 @@ export default function HomeScreen() {
         <Stat label="Clubs in bag" value={clubs.filter((c) => c.inBag).length} />
         <Stat label="Challenge pts" value={stats.points} />
       </StatGrid>
+
+      <Card onPress={() => router.push('/records')}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <ThemedText type="smallBold">🏆 Personal records</ThemedText>
+          <ThemedText type="small" themeColor="tint">
+            View all ›
+          </ThemedText>
+        </Row>
+        <ThemedText type="small" themeColor="textSecondary">
+          {[
+            records.best18 && `Best 18: ${formatToPar(records.best18.value)}`,
+            records.best9 && `Best 9: ${formatToPar(records.best9.value)}`,
+            records.mostBirdies && `Most birdies: ${records.mostBirdies.value}`,
+          ]
+            .filter(Boolean)
+            .join(' · ') || 'Longest shots per club, best rounds, streaks and more.'}
+        </ThemedText>
+      </Card>
+      {activeSessions > 0 ? (
+        <Card onPress={() => router.push('/challenges')}>
+          <ThemedText type="smallBold" themeColor="tint">
+            {activeSessions} range session{activeSessions > 1 ? 's' : ''} running ›
+          </ThemedText>
+        </Card>
+      ) : null}
 
       <SectionTitle>Today&apos;s challenges</SectionTitle>
       {daily.map((c) => (

@@ -4,7 +4,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Empty, ProgressBar, Row, Screen, SectionTitle, Stat, StatGrid, ToggleRow } from '@/components/ui';
-import { challengeById } from '@/domain/challenges';
+import { roundChallengeById } from '@/domain/challenges';
 import { formatToPar, isPlayed, scoreName, summarizeRound, toPar } from '@/domain/scoring';
 import type { HoleScore } from '@/domain/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -15,6 +15,7 @@ export default function ScorecardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const rounds = useAppState((s) => s.rounds);
   const courses = useAppState((s) => s.courses);
+  const clubs = useAppState((s) => s.clubs);
   const round = rounds.find((r) => r.id === id);
   const course = courses.find((c) => c.id === round?.courseId);
   const [current, setCurrent] = useState(() => {
@@ -34,6 +35,12 @@ export default function ScorecardScreen() {
   const score = round.scores[index];
   const mapped = course?.holes.some((h) => h.number === score.hole);
   const finished = !!round.finishedAt;
+
+  const clubName = (cid: string) => clubs.find((c) => c.id === round.challengeClubs?.[cid])?.name;
+  // Clubs chosen for one-club challenges in this round (normally just one).
+  const oneClubNames = [
+    ...new Set(round.challengeIds.filter((cid) => roundChallengeById(cid)?.needsClub).map(clubName).filter(Boolean)),
+  ];
 
   const update = (patch: Partial<HoleScore>) =>
     dispatch({ type: 'round/score', roundId: round.id, score: { ...score, ...patch } });
@@ -117,6 +124,14 @@ export default function ScorecardScreen() {
           <ToggleRow label="Fairway hit" value={!!score.fairwayHit} onChange={(fairwayHit) => update({ fairwayHit })} />
         ) : null}
         <ToggleRow label="Played from a bunker" value={!!score.sandShot} onChange={(sandShot) => update({ sandShot })} />
+        {oneClubNames.length > 0 ? (
+          <ToggleRow
+            label={`One club only: ${oneClubNames.join(' / ')}`}
+            hint="Every shot on this hole, putts included"
+            value={!!score.singleClub}
+            onChange={(singleClub) => update({ singleClub })}
+          />
+        ) : null}
         <Row>
           <Button
             title="‹ Prev"
@@ -136,15 +151,16 @@ export default function ScorecardScreen() {
 
       {round.challengeIds.length > 0 ? <SectionTitle>Challenges</SectionTitle> : null}
       {round.challengeIds.map((cid) => {
-        const c = challengeById(cid);
+        const c = roundChallengeById(cid);
         if (!c) return null;
         const p = c.evaluate(round, { pastRounds });
         const color = p.status === 'completed' ? theme.success : p.status === 'failed' ? theme.danger : undefined;
         return (
           <Card key={cid}>
             <Row style={{ justifyContent: 'space-between' }}>
-              <ThemedText type="smallBold">
+              <ThemedText type="smallBold" style={{ flex: 1 }}>
                 {c.emoji} {c.title}
+                {c.needsClub && clubName(cid) ? ` · ${clubName(cid)}` : ''}
               </ThemedText>
               <ThemedText type="smallBold" style={{ color: color ?? theme.textSecondary }}>
                 {p.status === 'completed' ? `+${c.points} ✓` : p.status === 'failed' ? 'Missed' : `+${c.points}`}

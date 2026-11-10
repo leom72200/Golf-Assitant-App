@@ -1,4 +1,4 @@
-import { activeRound, initialState, reducer } from '../reducer';
+import { activeAttempts, activeRound, initialState, reducer } from '../reducer';
 
 describe('reducer', () => {
   it('starts, scores and finishes a round', () => {
@@ -33,5 +33,27 @@ describe('reducer', () => {
     s = reducer(s, { type: 'course/save', course: { ...course, name: 'B' } });
     expect(s.courses).toHaveLength(1);
     expect(s.courses[0].name).toBe('B');
+  });
+
+  it('starts and ends a range session', () => {
+    const attempt = { id: 'a1', challengeId: 'distance-pr', clubId: '7i', startedAt: '2026-01-01T10:00:00Z', baseline: 160 };
+    let s = reducer(initialState, { type: 'attempt/start', attempt });
+    expect(activeAttempts(s)).toHaveLength(1);
+    s = reducer(s, { type: 'attempt/end', id: 'a1', endedAt: '2026-01-01T11:00:00Z' });
+    expect(activeAttempts(s)).toHaveLength(0);
+    // Ending twice keeps the original end time.
+    s = reducer(s, { type: 'attempt/end', id: 'a1', endedAt: '2026-01-02T11:00:00Z' });
+    expect(s.attempts[0].endedAt).toBe('2026-01-01T11:00:00Z');
+  });
+
+  it('remembers the club chosen for club challenges', () => {
+    const s = reducer(initialState, {
+      type: 'round/start',
+      id: 'r1',
+      startedAt: '',
+      challengeIds: ['one-club-par'],
+      challengeClubs: { 'one-club-par': '7i' },
+    });
+    expect(s.rounds[0].challengeClubs).toEqual({ 'one-club-par': '7i' });
   });
 });

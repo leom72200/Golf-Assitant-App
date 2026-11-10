@@ -23,6 +23,8 @@ export default function RootLayout() {
         <Stack.Screen name="course/[id]/hole/[hole]" options={{ title: 'Hole' }} />
         <Stack.Screen name="round/new" options={{ title: 'New round', presentation: 'modal' }} />
         <Stack.Screen name="round/[id]" options={{ title: 'Scorecard' }} />
+        <Stack.Screen name="records" options={{ title: 'Personal records' }} />
+        <Stack.Screen name="challenge/start" options={{ title: 'Range challenge', presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
   );

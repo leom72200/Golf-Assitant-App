@@ -5,6 +5,7 @@ import { Alert, Pressable } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Empty, fmt, Row, Screen, SectionTitle, Stat, StatGrid } from '@/components/ui';
 import { clubStats } from '@/domain/clubs';
+import { clubRecords, SHOT_METRICS } from '@/domain/records';
 import { dispatch, useAppState } from '@/state/store';
 
 export default function ClubScreen() {
@@ -14,6 +15,7 @@ export default function ClubScreen() {
   const club = clubs.find((c) => c.id === id);
   const shots = useMemo(() => allShots.filter((s) => s.clubId === id), [allShots, id]);
   const s = useMemo(() => clubStats(shots), [shots]);
+  const prs = useMemo(() => clubRecords(shots), [shots]);
 
   if (!club) return <Empty title="Club not found" />;
 
@@ -50,6 +52,29 @@ export default function ClubScreen() {
       )}
 
       <Button title={`Log a ${club.name} shot`} onPress={() => router.push({ pathname: '/shot/new', params: { clubId: club.id } })} />
+
+      {Object.keys(prs).length > 0 ? (
+        <>
+          <SectionTitle>Personal records</SectionTitle>
+          <Card>
+            {SHOT_METRICS.map((m) => {
+              const e = prs[m.key];
+              if (!e) return null;
+              return (
+                <Row key={m.key} style={{ justifyContent: 'space-between' }}>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    🏆 {m.label}
+                  </ThemedText>
+                  <ThemedText type="smallBold">
+                    {e.value.toFixed(m.digits)}
+                    {m.unit ? ` ${m.unit}` : ''}
+                  </ThemedText>
+                </Row>
+              );
+            })}
+          </Card>
+        </>
+      ) : null}
 
       <SectionTitle>Shot history</SectionTitle>
       {shots.length === 0 ? (
