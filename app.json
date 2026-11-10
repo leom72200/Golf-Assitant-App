@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "Golf Assistant",
+    "slug": "golf-assistant",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "golfassistant",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.golfassistant.app",
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1F7A3F",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.golfassistant.app"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1F7A3F",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Golf Assistant uses the camera to record your swing and measure ball speed and launch angle.",
+          "microphonePermission": "Golf Assistant records audio with swing videos to help detect the moment of impact.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Golf Assistant uses your location to find nearby courses and show distances to the green."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Golf Assistant opens slow-motion videos from your library so you can measure ball speed."
+        }
+      ],
+      "expo-sqlite",
+      "expo-video",
+      "react-native-maps"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "platforms": [
+      "ios",
+      "android"
+    ]
+  }
+}
