@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo } from 'react';
+import { View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button, Card, Empty, ProgressBar, Row, Screen, SectionTitle, Stat, StatGrid } from '@/components/ui';
@@ -45,10 +46,13 @@ export default function HomeScreen() {
             const p = c.evaluate(live, { pastRounds: finished });
             return (
               <Row key={id}>
-                <ThemedText type="small" style={{ width: 130 }}>
+                <ThemedText type="small" style={{ width: 170 }} numberOfLines={1}>
                   {c.emoji} {c.title}
                 </ThemedText>
-                <ProgressBar progress={p.progress} color={p.status === 'failed' ? '#999' : undefined} />
+                {/* The bar has no intrinsic width, so give it the rest of the row. */}
+                <View style={{ flex: 1 }}>
+                  <ProgressBar progress={p.progress} color={p.status === 'failed' ? '#999' : undefined} />
+                </View>
               </Row>
             );
           })}

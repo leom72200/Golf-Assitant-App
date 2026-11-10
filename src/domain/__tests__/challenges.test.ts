@@ -81,9 +81,10 @@ describe('challenges', () => {
   it('fills in club names and targets', () => {
     const c = rangeChallengeById('distance-pr')!;
     expect(challengeText(c.description, { clubName: '7i', target: '172 yds' })).toBe(
-      'Out-carry your longest 7i shot (172 yds).',
+      'Beat your longest carry with your 7i (172 yds).',
     );
-    expect(challengeText(c.description, { clubName: '7i' })).toBe('Out-carry your longest 7i shot.');
+    expect(challengeText(c.description, { clubName: '7i' })).toBe('Beat your longest carry with your 7i.');
+    expect(challengeText(c.description)).toBe('Beat your longest carry with your chosen club.');
   });
 
   it('daily challenges are stable for a date and distinct', () => {

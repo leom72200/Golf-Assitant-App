@@ -33,9 +33,11 @@ export default function ChallengesScreen() {
   // Per-challenge history: how often tried and completed.
   const record = useMemo(() => {
     const counts: Record<string, { tried: number; won: number }> = {};
+    // An attempt counts once it's finished or won; one still in progress doesn't count yet.
     const bump = (id: string, tried: boolean, won: boolean) => {
+      if (!tried && !won) return;
       counts[id] ??= { tried: 0, won: 0 };
-      if (tried || won) counts[id].tried += 1;
+      counts[id].tried += 1;
       if (won) counts[id].won += 1;
     };
     for (const r of rounds) {
