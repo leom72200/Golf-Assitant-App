@@ -7,6 +7,7 @@ import {
   challengeText,
   dailyChallenges,
   evaluateAttempt,
+  levelForPoints,
   RANGE_CHALLENGES,
   rangeChallengeById,
   ROUND_CHALLENGES,
@@ -54,7 +55,7 @@ export default function ChallengesScreen() {
   const active = attempts.filter((a) => !a.endedAt);
   const won = Object.values(record).reduce((s, c) => s + c.won, 0);
   const points = useMemo(() => totalPoints(rounds, attempts, shots), [rounds, attempts, shots]);
-  const level = Math.floor(points / 100) + 1;
+  const level = levelForPoints(points);
 
   return (
     <Screen tab headerless title="Challenges" subtitle="Add a goal to any round or range session.">
@@ -63,7 +64,10 @@ export default function ChallengesScreen() {
         <Stat label="Points" value={points} />
         <Stat label="Completed" value={won} />
       </StatGrid>
-      <Button title="🏆 Personal records" variant="secondary" onPress={() => router.push('/records')} />
+      <Row>
+        <Button title="🏆 Personal records" variant="secondary" onPress={() => router.push('/records')} style={{ flex: 1 }} />
+        <Button title="🎨 Tracer locker" variant="secondary" onPress={() => router.push('/tracers')} style={{ flex: 1 }} />
+      </Row>
 
       {active.length > 0 ? <SectionTitle>Active range sessions</SectionTitle> : null}
       {active.map((a) => {

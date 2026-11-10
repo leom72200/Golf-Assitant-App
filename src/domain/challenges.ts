@@ -508,6 +508,35 @@ export function dailyChallenges(date: Date, count = 3): RoundChallenge[] {
   return pool.slice(0, count);
 }
 
+/** Ids of every challenge completed at least once, with how many completions in total. */
+export function completedChallenges(
+  rounds: Round[],
+  attempts: ChallengeAttempt[] = [],
+  shots: Shot[] = [],
+): { ids: Set<string>; count: number } {
+  const ids = new Set<string>();
+  let count = 0;
+  for (const r of rounds) {
+    const pastRounds = rounds.filter((p) => p.startedAt < r.startedAt);
+    for (const id of r.challengeIds) {
+      if (roundChallengeById(id)?.evaluate(r, { pastRounds }).status === 'completed') {
+        ids.add(id);
+        count++;
+      }
+    }
+  }
+  for (const a of attempts) {
+    if (evaluateAttempt(a, shots)?.status === 'completed') {
+      ids.add(a.challengeId);
+      count++;
+    }
+  }
+  return { ids, count };
+}
+
+/** Levels go up every 100 challenge points. */
+export const levelForPoints = (points: number) => Math.floor(points / 100) + 1;
+
 /** Total points from completed round challenges and range sessions. */
 export function totalPoints(rounds: Round[], attempts: ChallengeAttempt[] = [], shots: Shot[] = []): number {
   let pts = 0;

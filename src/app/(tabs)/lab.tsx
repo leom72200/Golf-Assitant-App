@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { TrajectoryChart } from '@/components/trajectory-chart';
+import { ShotTracer } from '@/components/shot-tracer';
+import { useTracerStyle } from '@/hooks/use-tracer';
 import { Button, Card, Chips, NumberField, num, Row, Screen, SectionTitle, Stat, StatGrid } from '@/components/ui';
 import { airDensity, simulateFlight, typicalSpinForLoft } from '@/domain/launch';
 import { useAppState } from '@/state/store';
@@ -23,6 +24,7 @@ export default function ShotLabScreen() {
   const [spin, setSpin] = useState('');
   const [temp, setTemp] = useState('70');
   const [altitude, setAltitude] = useState('0');
+  const tracerStyle = useTracerStyle();
 
   const spinRpm = num(spin) ?? typicalSpinForLoft(club?.loft ?? 31);
   const flight = useMemo(() => {
@@ -90,7 +92,8 @@ export default function ShotLabScreen() {
 
       {flight ? (
         <Card>
-          <TrajectoryChart points={flight.trajectory} />
+          <ShotTracer flight={flight} style={tracerStyle} height={190} />
+          <Button title={`🎨 Tracer: ${tracerStyle.name}`} variant="secondary" onPress={() => router.push('/tracers')} />
           <StatGrid>
             <Stat label="Carry" value={flight.carryYards.toFixed(0)} unit="yds" />
             <Stat label="Total" value={flight.totalYards.toFixed(0)} unit="yds" />

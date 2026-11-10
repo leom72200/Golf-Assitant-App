@@ -13,7 +13,13 @@ function load(): AppState {
   try {
     const raw = Storage.getItemSync(STORAGE_KEY);
     if (!raw) return initialState;
-    return { ...initialState, ...(JSON.parse(raw) as Partial<AppState>) };
+    const saved = JSON.parse(raw) as Partial<AppState>;
+    // Merge nested preferences too, so new preference fields get their defaults.
+    return {
+      ...initialState,
+      ...saved,
+      preferences: { ...initialState.preferences, ...saved.preferences },
+    };
   } catch (e) {
     console.warn('Could not load saved data, starting fresh', e);
     return initialState;

@@ -104,6 +104,13 @@ export default function ClubScreen() {
             </ThemedText>
             {shot.notes ? <ThemedText type="small">{shot.notes}</ThemedText> : null}
             <Row>
+              {shot.carryYards || shot.ballSpeedMph ? (
+                <Pressable onPress={() => router.push(`/shot/${shot.id}`)}>
+                  <ThemedText type="small" themeColor="tint">
+                    ▶ Replay
+                  </ThemedText>
+                </Pressable>
+              ) : null}
               <Pressable onPress={() => dispatch({ type: 'shot/update', shot: { ...shot, mishit: !shot.mishit } })}>
                 <ThemedText type="small" themeColor="tint">
                   {shot.mishit ? 'Count this shot' : 'Mark as mishit'}

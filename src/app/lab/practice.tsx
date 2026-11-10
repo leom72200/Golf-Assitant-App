@@ -16,14 +16,15 @@ import { ActivityIndicator, AppState, Image, Pressable, ScrollView, StyleSheet, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { TrajectoryChart } from '@/components/trajectory-chart';
+import { CameraTracer, ShotTracer } from '@/components/shot-tracer';
 import { Button, Card, Chips, Row, Screen, Stat, StatGrid, ToggleRow } from '@/components/ui';
 import { ImpactDetector } from '@/domain/impactDetector';
 import { simulateFlight, typicalSpinForLoft, type FlightResult } from '@/domain/launch';
 import type { BallFix, GrayFrame, ShotMeasurement } from '@/domain/tracking';
 import { useTheme } from '@/hooks/use-theme';
 import { analysisSize, ClipFrames, deleteQuietly, type ClipGeometry } from '@/services/clipFrames';
-import { analyzeClip, calibrateOnBall, type PracticeSetup } from '@/services/practiceAnalysis';
+import { analyzeClip, calibrateOnBall, type CameraTracerData, type PracticeSetup } from '@/services/practiceAnalysis';
+import { useTracerStyle } from '@/hooks/use-tracer';
 import { dispatch, newId, useAppState } from '@/state/store';
 
 import {
@@ -52,6 +53,7 @@ interface SessionShot {
   flight: FlightResult;
   saved: boolean;
   analysisMs: number;
+  tracer?: CameraTracerData;
 }
 
 export default function PracticeScreen() {
@@ -132,6 +134,15 @@ function PracticeSession() {
   const [shots, setShots] = useState<SessionShot[]>([]);
   const [status, setStatus] = useState<string>();
   const [analyzing, setAnalyzing] = useState(false);
+  const tracerStyle = useTracerStyle();
+  const [tracerView, setTracerView] = useState<'flight' | 'camera'>('flight');
+  const [replay, setReplay] = useState(0);
+  // Delete kept tracer frames when leaving.
+  const shotsRef = useRef<SessionShot[]>([]);
+  useEffect(() => {
+    shotsRef.current = shots;
+  }, [shots]);
+  useEffect(() => () => shotsRef.current.forEach((s) => deleteQuietly(s.tracer?.uri)), []);
   const [startedAt] = useState(() => Date.now());
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -287,12 +298,18 @@ function PracticeSession() {
         flight,
         saved: false,
         analysisMs: res.elapsedMs,
+        tracer: res.tracer,
       };
       if (autoSaveRef.current) {
         saveShot(shot, spinRpm);
         shot.saved = true;
       }
-      setShots((prev) => [shot, ...prev].slice(0, 50));
+      setShots((prev) => {
+        const next = [shot, ...prev];
+        // Keep the last 50; drop older tracer frames from disk.
+        next.slice(50).forEach((old) => deleteQuietly(old.tracer?.uri));
+        return next.slice(0, 50);
+      });
       setStatus(undefined);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e) {
@@ -523,7 +540,35 @@ function PracticeSession() {
                   <Stat label="Carry" value={latest.flight.carryYards.toFixed(0)} unit="yds" />
                   <Stat label="Total" value={latest.flight.totalYards.toFixed(0)} unit="yds" />
                 </StatGrid>
-                <TrajectoryChart points={latest.flight.trajectory} height={110} />
+                <Row>
+                  <Chips
+                    options={[
+                      { value: 'flight', label: 'Flight tracer' },
+                      ...(latest.tracer ? [{ value: 'camera' as const, label: 'Camera tracer' }] : []),
+                    ]}
+                    selected={latest.tracer ? tracerView : 'flight'}
+                    onSelect={setTracerView}
+                  />
+                </Row>
+                {tracerView === 'camera' && latest.tracer ? (
+                  <CameraTracer
+                    imageUri={latest.tracer.uri}
+                    imageWidth={latest.tracer.width}
+                    imageHeight={latest.tracer.height}
+                    address={latest.tracer.address}
+                    points={latest.tracer.points}
+                    vx={latest.tracer.vx}
+                    vy={latest.tracer.vy}
+                    style={tracerStyle}
+                    replayKey={`${latest.id}-${replay}`}
+                  />
+                ) : (
+                  <ShotTracer flight={latest.flight} style={tracerStyle} height={150} replayKey={`${latest.id}-${replay}`} />
+                )}
+                <Row>
+                  <Button title="▶ Replay" variant="secondary" onPress={() => setReplay((r) => r + 1)} style={{ flex: 1 }} />
+                  <Button title={`🎨 ${tracerStyle.name}`} variant="secondary" onPress={() => router.push('/tracers')} style={{ flex: 1 }} />
+                </Row>
                 <ThemedText type="small" themeColor="textSecondary">
                   Confidence {Math.round(latest.measurement.confidence * 100)}% · {latest.measurement.pointsUsed} frames ·
                   analysed in {(latest.analysisMs / 1000).toFixed(1)}s. Carry assumes typical spin; direction (left/right)

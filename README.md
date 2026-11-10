@@ -89,6 +89,40 @@ Shot Lab can also open a slow-motion clip from your gallery and let you mark the
 Expo Go). The ball-flight calculator turns ball speed + launch + spin into carry, using a drag-and-lift
 model that lands within ~7% of published tour-average carries.
 
+## Shot tracer and unlockable styles
+
+Every shot can be watched with a **tracer line that follows the ball**:
+
+- **Flight tracer** (everywhere): a TV-style view from behind the golfer. The line is drawn as the ball
+  flies, in real time (slightly sped up), then the roll-out and a landing marker, with carry/total/apex.
+  The virtual camera fits itself to each shot so a high wedge and a long drive both fill the view. Shots
+  with a left/right number curve toward where they finished.
+- **Camera tracer** (practice mode): the ball's measured path drawn over a real frame from your shot,
+  extended until it leaves the picture.
+- **Replays**: tap **▶ Replay** on any logged shot in a club's history. Shots with only a carry distance
+  get a flight shape that matches that carry.
+
+**Tracer locker** (Challenges tab → 🎨 Tracer locker): styles unlock from your achievements, and a pop-up
+tells you when you earn one.
+
+| Style | How to unlock |
+| --- | --- |
+| Classic Red | From the start |
+| Ice Blue | Complete any challenge |
+| Record Breaker | Beat one of your personal records |
+| Birdie Gold | Complete Birdie Hunter |
+| Flame | Complete Hot Streak |
+| Comet | Complete Long Ball |
+| Neon Dash | Complete Tight Group |
+| Lightning | Complete Speed Session |
+| Rainbow | Complete One-Club Wonder (or Legend) |
+| Royal Purple | Reach level 3 (300 challenge points) |
+| Emerald | Finish 5 rounds |
+| Champion Platinum | Reach level 5 and complete 10 challenges |
+
+Unlocks are worked out from your rounds, sessions and shots (`src/domain/tracerStyles.ts`), so they
+always match your history.
+
 ## Build for your phone (Android)
 
 Practice mode contains custom native code, so it doesn't run in Expo Go. Build the app once with
@@ -130,6 +164,8 @@ src/
     lab/record.tsx        Camera swing recorder
     lab/analyze.tsx       Slow-mo frame-marking analyzer
     lab/practice.tsx      Live 240 fps practice mode
+    shot/[id].tsx         Shot replay with tracer
+    tracers.tsx           Tracer locker
     course/[id]/…         Course overview + GPS hole map
     round/…               New round + live scorecard
   domain/                 Pure TypeScript logic, no React, fully unit tested
@@ -140,6 +176,9 @@ src/
     scoring.ts            Round summaries, GIR, up-and-downs
     challenges.ts         Challenge catalog + evaluation engine
     records.ts            Personal records
+    tracerStyles.ts       Tracer styles and their unlock rules
+    tracerProjection.ts   Tracer geometry (down-the-line camera, camera-frame path)
+    shotFlight.ts         Rebuild a flight for any logged shot (for replays)
     tracking.ts           Ball detection + flight tracking on grayscale frames
     shotAnalyzer.ts       Per-shot analysis plan (coarse scan, fine frames, fit)
     impactDetector.ts     Hears the impact in microphone levels

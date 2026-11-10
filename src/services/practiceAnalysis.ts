@@ -59,7 +59,18 @@ export async function calibrateOnBall(
   return { ball, pixelsPerMeter: pixelsPerMeterFromRadius(ball.radius) };
 }
 
-export type ClipAnalysis = ShotAnalysis & { elapsedMs: number };
+/** What the camera tracer needs: a real frame and the ball's path on it (analysis pixels). */
+export interface CameraTracerData {
+  uri: string;
+  width: number;
+  height: number;
+  address: Point;
+  points: Point[];
+  vx: number;
+  vy: number;
+}
+
+export type ClipAnalysis = ShotAnalysis & { elapsedMs: number; tracer?: CameraTracerData };
 
 /** Analyse one recorded clip. The clip file is deleted afterwards. */
 export async function analyzeClip(
@@ -93,8 +104,27 @@ export async function analyzeClip(
       loadFrames: (f) => frames.gray(f, region),
       coarseStep: Math.max(4, Math.round(clip.fps / 40)),
     });
+    if (result.status === 'ok') {
+      // Keep one frame from just after impact for the camera tracer (best effort).
+      let tracer: CameraTracerData | undefined;
+      try {
+        const first = result.track.points[0];
+        const still = await frames.still(Math.round(first.t * clip.fps));
+        tracer = {
+          uri: still.uri,
+          width: still.gray.width,
+          height: still.gray.height,
+          address: fromRegion(result.ball),
+          points: result.track.points.map((p) => ({ x: p.x + region.x, y: p.y + region.y })),
+          vx: result.track.vx,
+          vy: result.track.vy,
+        };
+      } catch {
+        tracer = undefined;
+      }
+      return { ...result, ball: fromRegion(result.ball), elapsedMs: Date.now() - started, tracer };
+    }
     const elapsedMs = Date.now() - started;
-    if (result.status === 'ok') return { ...result, ball: fromRegion(result.ball), elapsedMs };
     return { ...result, ball: result.ball ? fromRegion(result.ball) : undefined, elapsedMs };
   } finally {
     frames.release(true);

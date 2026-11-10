@@ -9,6 +9,14 @@ export interface AppState {
   rounds: Round[];
   /** Range-session challenges, active and finished. */
   attempts: ChallengeAttempt[];
+  preferences: Preferences;
+}
+
+export interface Preferences {
+  /** Selected shot tracer style id. */
+  tracerStyle: string;
+  /** Tracer styles the player has already been told were unlocked. */
+  seenTracers: string[];
 }
 
 export const initialState: AppState = {
@@ -17,6 +25,7 @@ export const initialState: AppState = {
   courses: [],
   rounds: [],
   attempts: [],
+  preferences: { tracerStyle: 'classic', seenTracers: ['classic'] },
 };
 
 export type Action =
@@ -41,7 +50,9 @@ export type Action =
   | { type: 'round/delete'; id: string }
   | { type: 'attempt/start'; attempt: ChallengeAttempt }
   | { type: 'attempt/end'; id: string; endedAt: string }
-  | { type: 'attempt/delete'; id: string };
+  | { type: 'attempt/delete'; id: string }
+  | { type: 'prefs/tracer'; id: string }
+  | { type: 'prefs/seenTracers'; ids: string[] };
 
 const replaceById = <T extends { id: string }>(list: T[], item: T) =>
   list.map((x) => (x.id === item.id ? item : x));
@@ -104,6 +115,16 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     case 'attempt/delete':
       return { ...state, attempts: state.attempts.filter((a) => a.id !== action.id) };
+    case 'prefs/tracer':
+      return { ...state, preferences: { ...state.preferences, tracerStyle: action.id } };
+    case 'prefs/seenTracers':
+      return {
+        ...state,
+        preferences: {
+          ...state.preferences,
+          seenTracers: [...new Set([...state.preferences.seenTracers, ...action.ids])],
+        },
+      };
   }
 }
 

@@ -148,3 +148,24 @@ export function roundRecords(rounds: Round[]): RoundRecords {
   out.courseBests = [...byCourse.values()].sort((a, b) => a.courseName.localeCompare(b.courseName));
   return out;
 }
+
+/**
+ * True if any logged shot ever beat an earlier record with the same club (the first shot with
+ * a club doesn't count: there was nothing to beat).
+ */
+export function hasBrokenRecord(shots: Shot[]): boolean {
+  const best = new Map<string, Partial<Record<ShotMetric, number>>>();
+  for (const shot of [...shots].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+    if (shot.mishit) continue;
+    const club = best.get(shot.clubId) ?? {};
+    for (const { key } of SHOT_METRICS) {
+      const v = shotMetric(shot, key);
+      if (v === undefined) continue;
+      const prev = club[key];
+      if (prev !== undefined && v > prev) return true;
+      if (prev === undefined || v > prev) club[key] = v;
+    }
+    best.set(shot.clubId, club);
+  }
+  return false;
+}
