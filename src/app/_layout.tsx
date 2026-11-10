@@ -19,6 +19,7 @@ export default function RootLayout() {
         <Stack.Screen name="shot/new" options={{ title: 'Log shot', presentation: 'modal' }} />
         <Stack.Screen name="lab/record" options={{ title: 'Record swing', headerShown: false }} />
         <Stack.Screen name="lab/analyze" options={{ title: 'Analyze clip' }} />
+        <Stack.Screen name="lab/practice" options={{ title: 'Practice mode', headerShown: false }} />
         <Stack.Screen name="course/[id]/index" options={{ title: 'Course' }} />
         <Stack.Screen name="course/[id]/hole/[hole]" options={{ title: 'Hole' }} />
         <Stack.Screen name="round/new" options={{ title: 'New round', presentation: 'modal' }} />

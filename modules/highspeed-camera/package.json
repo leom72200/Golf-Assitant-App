@@ -1,0 +1,7 @@
+{
+  "name": "highspeed-camera",
+  "version": "0.1.0",
+  "description": "240 fps camera preview + recording for the Golf Assistant practice mode (Android, Camera2 constrained high-speed session).",
+  "main": "index.tsx",
+  "private": true
+}

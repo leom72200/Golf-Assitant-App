@@ -51,7 +51,17 @@ export default function ShotLabScreen() {
   return (
     <Screen tab headerless title="Shot Lab" subtitle="Use your phone's camera as a simple launch monitor.">
       <Card>
-        <ThemedText type="smallBold">How it works</ThemedText>
+        <ThemedText type="smallBold">⚡ Live practice mode</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          Keep the camera open and just hit balls. The phone films at 240 fps, hears each impact, and measures ball
+          speed, launch angle and carry automatically — nothing is saved unless you want it. Android phones with a
+          high-speed camera mode (e.g. Galaxy S21 and newer); needs the app build, not Expo Go.
+        </ThemedText>
+        <Button title="Start practice mode" onPress={() => router.push('/lab/practice')} />
+      </Card>
+
+      <Card>
+        <ThemedText type="smallBold">Analyze a clip by hand</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           1. Set your phone on the ground or a tripod about 2 m (7 ft) away, side-on to the ball so it flies across the
           screen.{'\n'}2. Film the swing in <ThemedText type="smallBold">slow motion</ThemedText> (240 fps if your phone

@@ -20,7 +20,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.golfassistant.app"
+      "package": "com.golfassistant.app",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -54,7 +58,13 @@
       ],
       "expo-sqlite",
       "expo-video",
-      "react-native-maps"
+      "react-native-maps",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Golf Assistant listens for the sound of club hitting ball to time each shot in practice mode. Audio is never saved."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
